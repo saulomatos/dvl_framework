@@ -1,0 +1,11 @@
+numpy
+scipy
+pymoo==0.5.0
+tensorflow
+scikit-learn
+matplotlib
+pandas
+pyDOE2
+optproblems
+diversipy
+hvwfg
