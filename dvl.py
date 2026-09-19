@@ -1,4 +1,7 @@
-from pyDOE import *
+import pyDOE2 as pyDOE #from pyDOE import *
+
+from pymoo.operators.sampling.lhs import LHS
+
 from optproblems import dtlz
 import numpy as np
 import copy
@@ -9,7 +12,6 @@ from sklearn.preprocessing import Normalizer, MaxAbsScaler, MinMaxScaler
 import time
 
 class DVL():
-
     def __init__(self,
                 problem=None,
                 pipeline=None,
@@ -19,6 +21,7 @@ class DVL():
                 iterations=10,
                 num_process_time=None,
                 num_order=None):
+        exit("INIT da classe DVL")
 
         if problem == None:
             raise Exception("Cannot initializate without a problem.")
@@ -46,6 +49,7 @@ class DVL():
     
     ## DVL execution for DTLZ benchmark problems
     def execute(self):
+        exit("execute da classe DVL está sendo utilizado???")
 
         upper = np.ones(self.problem.num_variables)
         lower = np.zeros(self.problem.num_variables)
@@ -101,6 +105,7 @@ class DVL():
         return best_hv
 
     def experimento1(self, objectives, solutions, reference_points, lower, upper, n):
+        exit("experimento1 da classe DVL")
         new_solutions = []
         num_sol = solutions.shape[0]
         num_var = solutions.shape[1]
@@ -145,6 +150,8 @@ class DVL():
 
     ## Inverse modeling for the SUMO real problem:
     def experimento1Real(self, objectives_not, solutions, reference_points, lower, upper, n):
+        exit("experimento1Real da classe DVL")
+
         
         objectives = self.preprocessing.fit_transform(objectives_not)
         new_solutions = []
@@ -188,6 +195,8 @@ class DVL():
         return new_solutions
 
     def experimento2(self, objectives, solutions, reference_points, lower, upper):
+        exit("experimento2 da classe DVL")
+
         new_solutions = []
         self.pipeline.fit(objectives, solutions)
 
@@ -199,6 +208,7 @@ class DVL():
 
     ## DVL execution for the SUMO real optimization problem
     def executeRealProblem(self):
+        exit("executeRealProblem da classe DVL está sendo utilizado???")
         
         process_start = time.process_time()
         clock_start = time.time()
@@ -206,7 +216,15 @@ class DVL():
         upper = np.repeat(120, self.problem.num_variables)
         lower = np.repeat(20, self.problem.num_variables)
 
-        solutions = (lhs(self.problem.num_variables, samples=self.samples) * 100) + 20
+        #upper = np.repeat(self.problem.upperbound, self.problem.num_variables)
+        #lower = np.repeat(self.problem.lowerbound, self.problem.num_variables)
+
+        #solutions = (lhs(self.problem.num_variables, samples=self.samples) * 100) + 20
+        solutions = LHS().do(self.problem, n_samples=self.samples).get("X")
+        solutions = (solutions * 100) + 20
+
+        solutions = (solutions * (self.problem.upperbound - self.problem.lowerbound)) + self.problem.lowerbound
+
         solutions = solutions.astype(int)
         objectives = np.array([self.problem.evaluate(sol) for sol in solutions])
         

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from numpy.core.fromnumeric import var
+#from numpy.core.fromnumeric import var
 import numpy as np
 import pandas as pd
 from dvl import DVL
@@ -15,7 +15,20 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler, MaxAbsScaler, No
 from pymoo.algorithms.moo.nsga3 import NSGA3
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.algorithms.moo.moead import MOEAD
-from pymoo.factory import get_problem, get_reference_directions, get_sampling, get_crossover, get_mutation
+
+###############################
+# pymoo < 0.6
+#from pymoo.factory import get_problem, get_reference_directions, get_sampling, get_crossover, get_mutation 
+
+#pymoo >= 0.6
+from pymoo.problems import get_problem
+from pymoo.util.ref_dirs import get_reference_directions
+from pymoo.operators.sampling.rnd import FloatRandomSampling
+from pymoo.operators.sampling.rnd import IntegerRandomSampling
+from pymoo.operators.crossover.sbx import SBX
+from pymoo.operators.mutation.pm import PM
+###############################
+
 from pymoo.optimize import minimize
 from pymoo.visualization.scatter import Scatter
 import hvwfg
@@ -24,7 +37,7 @@ import time
 from SUMOProblem import SUMOProblem
 import autograd.numpy as anp
 from pymoo.core.problem import Problem
-from pyDOE import *
+import pyDOE2 as pyDOE #from pyDOE import *
 from sklearn.model_selection import cross_val_score
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
@@ -36,36 +49,69 @@ from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
+from input import Input
+
+input = Input()
+
 
 class SumoPymooProblem(Problem):
 
     def __init__(self):
-        super().__init__(n_var=8,
-                         n_obj=6,
+
+        self.problem = SUMOProblem(
+            scenario=input.scenario,
+            input=input
+        )
+
+        super().__init__(
+            n_var=self.problem.num_variables,
+            n_obj=len(input.objectives),
+            n_constr=0,
+            xl=np.full(self.problem.num_variables, input.lowerbound),
+            xu=np.full(self.problem.num_variables, input.upperbound),
+            type_var=int
+        )
+
+    '''
+    #print("SumoPymooProblem- real_optimization_experiment.py")
+    def __init__(self):
+        #print("1- real_optimization_experiment.py")
+        super().__init__(n_var=input.num_variables, #n_var=8,
+                         n_obj=len(input.objectives),#n_obj=6,
                          n_constr=0,
-                         xl=np.array([20, 20, 20, 20, 20, 20, 20, 20]),
-                         xu=np.array([120, 120, 120, 120, 120, 120, 120, 120]),
+                         xl = np.full(input.num_variables, input.lowerbound),
+                         xu = np.full(input.num_variables, input.upperbound),
+                         #xl=np.array([20, 20, 20, 20, 20, 20, 20, 20]),
+                         #xu=np.array([120, 120, 120, 120, 120, 120, 120, 120]),
                          type_var=int)
         
-        self.problem = SUMOProblem(scenario=2)
+        #print("oi, SumoPymooProblem antes")
+        #self.problem = SUMOProblem(scenario=2)
+        self.problem = SUMOProblem(
+            scenario=input.scenario,
+            input=input
+            )
+    '''
+        #print("oi, SumoPymooProblem depois")
 
     def _evaluate(self, x, out, *args, **kwargs):
+        #print("_evaluate- real_optimization_experiment.py")
         out["F"] = np.zeros((x.shape[0], self.n_obj))
         
         for i,dv in enumerate(x):
             out["F"][i] = self.problem.evaluate(dv) 
 
-        #print(out["F"])
+        print(out["F"])
 
 def runNSGA2(evaluations, order):
-
+    print("runNSGA2- real_optimization_experiment.py")
     problem = SumoPymooProblem()
     algorithm = NSGA2(
         pop_size=20,
         n_offsprings=20,
-        sampling=get_sampling("int_random"),
-        crossover=get_crossover("int_sbx", prob=0.9, eta=15),
-        mutation=get_mutation("int_pm", eta=20),
+        sampling=IntegerRandomSampling(), # sampling=get_sampling("int_random"),
+        crossover=SBX(prob=0.9, eta=15), #crossover=get_crossover("int_sbx", prob=0.9, eta=15),
+        mutation=PM(eta=20), #mutation=get_mutation("int_pm", eta=20),
         eliminate_duplicates=True
     )
     
@@ -93,6 +139,7 @@ def runNSGA2(evaluations, order):
 
 
 def generate_database():
+    print("generate_database- real_optimization_experiment.py")
     problem = SUMOProblem(scenario=2)
     solutions = (lhs(8, 500) * 100) + 20
     solutions = solutions.astype(int)
@@ -110,6 +157,7 @@ def generate_database():
     var2.to_excel('./Results/Experimento3/database500.xlsx',header=False, index=False)
 
 def read_database():
+    print("read_database - real_optimization_experiment.py")
     data = pd.read_excel('./Results/Experimento3/database500.xlsx', header=None)
     data_array = data.to_numpy()
 
@@ -125,6 +173,7 @@ def read_database():
 
 #@ignore_warnings(category=ConvergenceWarning)
 def HPOptimization():
+    print("HPOptimization - real_optimization_experiment.py")
     y, X = read_database()
 
     #my_pipeline = getModel('RFRSS')
@@ -181,6 +230,7 @@ def HPOptimization():
 
 @ignore_warnings(category=ConvergenceWarning)
 def executeDVLNTimes(times, problem, pipeline, samples, iterations):
+    print("executeDVLNTimes - real_optimization_experiment.py")
     mean_hv = np.zeros(times)
     for z in range(times):
         start_time = time.time()
@@ -193,6 +243,7 @@ def executeDVLNTimes(times, problem, pipeline, samples, iterations):
 
 
 def testDVL(samples, iterations):
+    print("testDVL - real_optimization_experiment.py")
     process_start = time.process_time()
     clock_start = time.time()
     problem = SUMOProblem(scenario=2)
@@ -209,6 +260,7 @@ def testDVL(samples, iterations):
 
 
 def test_preprocessing():
+    print("test_preprocessing - real_optimization_experiment.py")
     y, X = read_database()
     #my_pipeline = make_pipeline(StandardScaler(), MLPRegressor(hidden_layer_sizes=(11,11), activation='relu', solver='lbfgs', learning_rate='invscaling'))
     print(X[0])
@@ -222,6 +274,7 @@ def test_preprocessing():
     print(X_norm[0])
 
 def test_hv():
+    print("test_hv - real_optimization_experiment.py")
     problem = SUMOProblem(scenario=2)
     hv_ref = problem.referenceHV()
     normal = np.prod(hv_ref)
@@ -271,6 +324,7 @@ def test_hv():
 
 
 def test_hv_loop():
+    print("test_hv_loop - real_optimization_experiment.py")
     problem = SUMOProblem(scenario=2)
     hv_ref = problem.referenceHV()
     normal = np.prod(hv_ref)
@@ -285,6 +339,7 @@ def test_hv_loop():
         print('DVL2 Norm.  {}: {}'.format(x, result_hv_nor))
 
 def transform_database():
+    print("transform_database - real_optimization_experiment.py")
     data = pd.read_excel('./Results/Experimento3/database.xlsx', header=None)
     data_array = data.to_numpy()
 
@@ -296,32 +351,39 @@ def transform_database():
     var2.to_excel('./Results/Experimento3/database_new.xlsx',header=False, index=False)
 
 @ignore_warnings(category=ConvergenceWarning)
-def runDVL(time_evaluation, order):    
-
+def runDVL(time_evaluation, order):
+    print("runDVL - real_optimization_experiment.py")    
+    exit("\nAqui vai dar erro pois não tem chamada a SumoPymooProblem .... problem = SumoPymooProblem()\n")
+    
     problem = SUMOProblem(scenario=2)
+    
     my_pipeline = make_pipeline(MLPRegressor(hidden_layer_sizes=(11,11), activation='relu', solver='lbfgs', learning_rate='invscaling'))
     dvl = DVL(problem=problem, pipeline=my_pipeline, samples=250, num_training=300, num_process_time=time_evaluation, num_order=order)
     dvl.executeRealProblem()
     return    
 
 @ignore_warnings(category=ConvergenceWarning)
-def runDVLFramework(time_evaluation, order):    
+def runDVLFramework(time_evaluation, order):   
+    #print("runDVLFramework - real_optimization_experiment.py") 
     problem = SumoPymooProblem()
     #problem = SUMOProblem(scenario=2)
     my_pipeline = make_pipeline(MLPRegressor(hidden_layer_sizes=(11,11), activation='relu', solver='lbfgs', learning_rate='invscaling'))
     dvl_framework = DVLFramework(problem=problem, pipeline=my_pipeline, samples=250,  num_process_time=time_evaluation, num_order=order)
+    #print("\n\napós instanciar dvl e dentro do def runDVLFramework()\n")
     dvl_framework.executeRealProblem()
     return    
 
-#for x in range(1,21):
+# Runs the experiment with the DVL, DVL Framework, and NSGA-II algorithms in the SUMO real optimization problem:
+
+#for x in range(1,2): #1,21):
 #  print('Executing {}...'.format(x))    
 #  runNSGA2(5000, x) 
 
 
-#for x in range(1,21):
+#for x in range(1,2): #1,21):
 #    print('Executing {}...'.format(x))    
 #    runDVL(1100, x) 
 
-#for x in range(1,21):
-#    print('Executing {}...'.format(x))  
-#    runDVLFramework(1100, x) 
+for x in range(1,2): #1,21):
+    print('Executing {}...'.format(x))  
+    runDVLFramework(500, x)#1100, x) #500 #(2, x) # (1100, x) 
