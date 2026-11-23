@@ -186,10 +186,10 @@ class DVLFramework():
         solutions = solutions.astype(int)
         objectives = np.array([self.problem.evaluate(sol) for sol in solutions])
         
-        if self.problem.num_objectives == 10 or self.problem.num_objectives == 6:
+        if self.problem.num_objectives in [6, 10, 12]:
             reference_points = np.asarray(generate_reference_points(self.problem.num_objectives, 3))
         else:
-            exit("def executeRealProblem() and number of objetiver not in [6, 10]")
+            exit("def executeRealProblem() and number of objetiver not in [6, 10, 12]")
             reference_points = np.asarray(generate_reference_points(self.problem.num_objectives, self.problem.num_variables))
 
         print(f"executeRealProblem   num_objectives = {self.problem.num_objectives}\nreference_points = {reference_points}")

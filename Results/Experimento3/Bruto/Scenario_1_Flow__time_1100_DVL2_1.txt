@@ -1,2 +1,0 @@
-Process Time 284.244076989
-Clock Time 2538.539127111435

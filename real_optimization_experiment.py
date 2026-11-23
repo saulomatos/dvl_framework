@@ -49,6 +49,8 @@ from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import RBF
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 
+from datetime import datetime
+
 from input import Input
 
 input = Input()
@@ -71,7 +73,8 @@ class SumoPymooProblem(Problem):
             xu=np.full(self.problem.num_variables, input.upperbound),
             type_var=int
         )
-
+    
+    #print("Oi SumoPymooProblem- real_optimization_experiment.py")
     '''
     #print("SumoPymooProblem- real_optimization_experiment.py")
     def __init__(self):
@@ -384,6 +387,8 @@ def runDVLFramework(time_evaluation, order):
 #    print('Executing {}...'.format(x))    
 #    runDVL(1100, x) 
 
-for x in range(1,2): #1,21):
-    print('Executing {}...'.format(x))  
+for x in range(1,11): #1,21):
+    print('Executing {}...'.format(x))
+    now = datetime.now()
+    print(now.strftime("%H:%M"))  
     runDVLFramework(500, x)#1100, x) #500 #(2, x) # (1100, x) 

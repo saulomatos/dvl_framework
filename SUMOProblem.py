@@ -43,13 +43,17 @@ class SUMOProblem():
         '''
 
         self.scenario   = input.scenario
-        self.scenario_path = './SUMO/cenario' + str(self.scenario)
+        self.flow        = input.flow
+        self.scenario_path = './SUMO/cenario' + str(self.scenario) + '/' + self.flow
+        #self.scenario_path = './SUMO/cenario' + str(self.scenario)
         if not os.path.isdir(self.scenario_path):  
             raise Exception("Scenario path doesn't exist!")      
 
         #print("oi, config")
         self.config_file = config_file
         self.config_path = self.scenario_path+'/'+self.config_file
+        #print(f"self.config_path = {self.config_path}")
+        #exit("ea")
         if not os.path.isfile(self.config_path):  
             raise Exception("Config path file doesn't exist.")      
 
@@ -78,12 +82,7 @@ class SUMOProblem():
         print("Avaliações: ONDE SETAREMOS ISSO DE FATO?  \"evaluations da class DVLFramework?")
         #, input.num_avaliacoes)
         print("Algoritmo: ONDE SETAREMOS ISSO DE FATO? na class Input?")#, input.algorithm)
-        #exit("e ae")
 
-        #self.objectives = ["departDelay", "duration", "waitingCount", "timeLoss", "CO2_abs", "fuel_abs"]
-        #medidas_trip = ["departDelay", "duration", "waitingCount", "timeLoss", "CO_abs", "CO2_abs", 
-                    #"HC_abs", "PMx_abs", "NOx_abs", "fuel_abs", "vm_global"]#, "idle_time"] 
-    
     def getPhasesTheirIdsAndTotal(self):
         numPhases = 0
         # self.MAPA         = dataDirectory + "Data/Mapas/"+str(mapa)+"/"+fluxo+"/net.xml"
@@ -144,6 +143,53 @@ class SUMOProblem():
         #exit("e ae?????!")
 
     def parse_objectives(self):
+        #print("oi, parse_objectives")
+        tree = ET.parse(self.output_path)
+        root = tree.getroot()     
+        objectives = np.zeros(self.num_objectives)   
+        numberOfTrips = 0
+        vm_global     = 0
+        fixed_duration = 18
+        tam_rota = 749.9
+        for tripinfo in root:
+            numberOfTrips += 1
+            objectives[0] += float(tripinfo.get('departDelay')) # ok
+            objectives[1] += float(tripinfo.get('duration'))    # ok === trip duration
+            #objectives[2] += float(tripinfo.get('waitingTime'))
+            # vamos utilizar waitingCount (NÃO waitingTime) pois é igual a do mestrado que se chamava "wait steps" veja:
+            # waitingTime	( s ) The time in which the vehicle speed was below or equal 0.1 m/s (scheduled stops do not count)
+            # waitingCount	( #	) The number of times the vehicle speed went below or equal 0.1 m/s
+            objectives[2] += int(tripinfo.get('waitingCount')) # ok === waitingCount
+            #print(f"waitingCount {objectives[2]}")            
+            objectives[3] += float(tripinfo.get('timeLoss'))   # ok
+            for emission in tripinfo:      
+                objectives[4] += float(emission.get('CO2_abs'))/1000   # ok
+                objectives[5] += float(emission.get('fuel_abs'))/1000  # ok
+
+                if self.num_objectives >= 10:
+                    objectives[6] += float(emission.get('CO_abs'))/1000   # ok - Dividir por quanto
+                    objectives[7] += float(emission.get('HC_abs'))/1000   # ok - Dividir por quanto
+                    objectives[8] += float(emission.get('PMx_abs'))/1000  # ok - Dividir por quanto
+                    objectives[9] += float(emission.get('NOx_abs'))/1000  # ok - Dividir por quanto
+
+                if self.num_objectives == 12: 
+                    if self.scenario != 3:
+                        exit("num_objectives == 12 apenas para o cenário 3, por hora. E não é caso aqui")
+                    
+                    vm_global += tam_rota / float(tripinfo.get('duration')) # ok?? - E... Dividir por algo?
+                    # Global mean speed: the sum of all average speeds divided by the number of vehicles
+                    
+                        # Isso tá ruim!!! 
+                    objectives[11] += float(tripinfo.get('duration')) - fixed_duration # ok?? - E... Dividir por algo?
+                    # Idle time: the duration of the trip minus the duration that the vehicle would take to make the trip without any stops
+                    
+        if self.num_objectives == 12 and self.scenario == 3:
+            objectives[10] += (vm_global / numberOfTrips * -1) # Maximização
+        # len(root.findall("./tripinfo")) * -1)           
+        
+        return objectives
+    
+    def ARTHUR_parse_objectives(self):
         #print("oi, parse_objectives")
         tree = ET.parse(self.output_path)
         root = tree.getroot()     
